@@ -10,6 +10,7 @@ interface StudentDashboardProps {
   onStudentLogin: (student: User) => void;
   activeStudent: User | null;
   onLogout: () => void;
+  activeTheme?: string;
 }
 
 export const StudentDashboard: React.FC<StudentDashboardProps> = ({
@@ -18,6 +19,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   onStudentLogin,
   activeStudent,
   onLogout,
+  activeTheme = 'light',
 }) => {
   // Login phase
   const [studentCodeInput, setStudentCodeInput] = useState('');
@@ -948,15 +950,73 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
     );
   }
 
+  // Custom styled background header for student depending on theme
+  let headerBgClass = "bg-gradient-to-r from-blue-900 to-indigo-950 text-white shadow-xl";
+  let headerOrnament = null;
+
+  if (activeTheme === 'dark') {
+    headerBgClass = "bg-gradient-to-r from-slate-900 via-slate-950 to-indigo-950 border border-indigo-950/50 text-white shadow-xl shadow-slate-950/50";
+    headerOrnament = (
+      <div className="absolute top-2 right-4 text-[10px] font-mono opacity-40 text-slate-450 flex items-center gap-1 select-none pointer-events-none">
+        <Sparkles className="h-3 w-3 text-indigo-400 animate-spin-slow shrink-0" />
+        <span>Vũ Trụ Huyền Bí</span>
+      </div>
+    );
+  } else if (activeTheme === 'tet') {
+    headerBgClass = "bg-gradient-to-r from-red-750 via-red-800 to-amber-900 border-2 border-amber-500/40 text-yellow-50 shadow-xl shadow-red-950/40";
+    headerOrnament = (
+      <div className="absolute top-1.5 right-3 flex items-center gap-1 select-none pointer-events-none">
+        <span className="text-xl animate-bounce">🧧</span>
+        <span className="text-[9px] font-black text-yellow-300 tracking-wider bg-red-950/70 px-2 py-0.5 rounded border border-red-500/30">MỪNG XUÂN TẾT CỔ TRUYỀN</span>
+        <span className="text-xl animate-float-slow">🌸</span>
+      </div>
+    );
+  } else if (activeTheme === 'mid_autumn') {
+    headerBgClass = "bg-gradient-to-r from-[#031525] via-[#08203e] to-[#011122] border border-amber-300/30 text-amber-50 shadow-xl shadow-blue-950/80";
+    headerOrnament = (
+      <div className="absolute top-1.5 right-3 flex items-center gap-1.5 select-none pointer-events-none">
+        <div className="w-3.5 h-3.5 rounded-full bg-amber-200 shadow-[0_0_12px_rgba(253,230,138,0.9)] animate-pulse" />
+        <span className="text-[9px] font-black text-amber-200 tracking-wider bg-slate-950/70 px-2 py-0.5 rounded border border-amber-500/30">TRUNG THU ĐOÀN VIÊN 🏮</span>
+      </div>
+    );
+  } else if (activeTheme === 'christmas') {
+    headerBgClass = "bg-gradient-to-r from-emerald-900 via-rose-950 to-emerald-950 border border-emerald-700/30 text-white shadow-xl shadow-emerald-950/50";
+    headerOrnament = (
+      <div className="absolute top-1.5 right-3 flex items-center gap-1 select-none pointer-events-none">
+        <span className="text-xl animate-bounce">🎄</span>
+        <span className="text-[9px] font-black text-emerald-250 tracking-wider bg-black/45 px-2 py-0.5 rounded border border-emerald-400/20">GIÁNG SINH DIỆU KỲ</span>
+        <span className="text-xl animate-float-slow">❄️</span>
+      </div>
+    );
+  } else if (activeTheme === 'summer') {
+    headerBgClass = "bg-gradient-to-r from-sky-400 via-teal-500 to-amber-300 text-slate-900 shadow-xl border border-sky-100 shadow-sky-100/20";
+    headerOrnament = (
+      <div className="absolute top-1.5 right-3 flex items-center gap-1 select-none pointer-events-none">
+        <span className="text-xl animate-bounce">🏖️</span>
+        <span className="text-[10px] font-bold text-teal-950 tracking-wider bg-white/70 px-2 py-0.5 rounded border border-teal-300/40 font-black">MÙA HÈ RỰC RỠ</span>
+        <span className="text-xl animate-float-slow">☀️</span>
+      </div>
+    );
+  } else if (activeTheme === 'halloween') {
+    headerBgClass = "bg-gradient-to-r from-slate-900 via-purple-950 to-orange-950 border border-orange-500/30 text-orange-50 shadow-xl shadow-slate-950/60";
+    headerOrnament = (
+      <div className="absolute top-1.5 right-3 flex items-center gap-1 select-none pointer-events-none animate-pulse">
+        <span className="text-xl">🎃</span>
+        <span className="text-[9px] font-black text-orange-200 tracking-wider bg-black/70 px-2 py-0.5 rounded border border-orange-500/35">ĐÊM HỘI HALLOWEEN SPOOKY</span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       
       {/* Visual Header containing game stats */}
       <div 
-        className="bg-gradient-to-r from-blue-900 to-indigo-950 rounded-2xl p-5 sm:p-6 text-white shadow-xl relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-6"
+        className={`rounded-2xl p-5 sm:p-6 shadow-xl relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-6 ${headerBgClass}`}
         id="student-dashboard-header-card"
       >
         <div className="absolute right-0 top-0 w-80 h-40 bg-indigo-800/10 rounded-full blur-3xl pointer-events-none" />
+        {headerOrnament}
         
         {/* Profile Card left - completely optimized for vertical & horizontal viewports */}
         <div className="flex flex-col sm:flex-row items-center text-center sm:text-left gap-4 relative z-10 w-full lg:w-auto">
@@ -2083,7 +2143,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       )}
 
       {/* DIALOG THAY DIỆN MẠO (APPEARANCE CUSTOMIZATION MODAL) */}
-      {isCustomizingAppearance && activeStudent && activeParticipant && (
+      {isCustomizingAppearance && activeStudent && (
         <div 
           className="fixed inset-0 bg-slate-900/75 backdrop-blur-md flex items-center justify-center p-4 z-55 animate-fade-in"
           onClick={() => setIsCustomizingAppearance(false)}
@@ -2108,7 +2168,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   framePath={activeStudent.activeFramePath}
                   effectPath={activeStudent.activeEffectPath}
                   size="xl"
-                  level={activeParticipant.currentLevel}
+                  level={activeParticipant ? activeParticipant.currentLevel : 1}
                 />
               </div>
 
@@ -2125,7 +2185,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 <h4 className="font-extrabold text-white text-base leading-tight truncate max-w-[200px]">
                   {activeStudent.fullName}
                 </h4>
-                <p className="text-[10px] text-indigo-300 font-mono mt-0.5">Cấp {activeParticipant.currentLevel} • {activeParticipant.currentXp} XP</p>
+                <p className="text-[10px] text-indigo-300 font-mono mt-0.5">Cấp {activeParticipant ? activeParticipant.currentLevel : 1} • {activeParticipant ? activeParticipant.currentXp : 0} XP</p>
               </div>
             </div>
 
@@ -2208,7 +2268,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                         // Unlock condition check
                         const isUnlocked = item.isDefault || 
                           db.inventory.some(inv => inv.studentId === activeStudent.id && inv.roomId === selectedRoomId && (inv.cosmeticId === item.id || inv.cosmeticId === item.filePath)) ||
-                          (item.minLevel !== undefined && activeParticipant.currentLevel >= item.minLevel);
+                          (item.minLevel !== undefined && activeParticipant && activeParticipant.currentLevel >= item.minLevel);
 
                         return (
                           <button

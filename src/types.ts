@@ -108,3 +108,22 @@ export interface PendingPurchase {
   status: 'pending' | 'approved' | 'rejected';
   purchasedAt: string;
 }
+
+export interface SystemThemeSchedule {
+  id: string;
+  themeId: string;       // 'light' | 'dark' | 'tet' | 'mid_autumn' | 'christmas' | 'halloween'
+  name: string;          // Name of the schedule/holiday
+  type: 'always' | 'scheduled' | 'time_of_day'; // Manual/Always, Date range, or Time of day
+  startDate?: string;    // YYYY-MM-DD
+  endDate?: string;      // YYYY-MM-DD
+  startHour?: number;    // 0-23
+  endHour?: number;      // 0-23
+  isTemporary: boolean;  // Has expiration/duration limit, or is permanent
+  isActive: boolean;
+}
+
+export interface SystemThemeSettings {
+  activeThemeId: string;
+  schedules: SystemThemeSchedule[];
+}
+

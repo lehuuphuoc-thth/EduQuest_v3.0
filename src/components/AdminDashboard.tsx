@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { Database, saveDatabase, generateId } from '../utils/db';
-import { User, Room } from '../types';
-import { Shield, Users, UserPlus, FileDown, Upload, RefreshCw, Key, Trash, CheckCircle, AlertTriangle, Search, Edit, ArrowRightLeft, Check, X, Filter, Users2 } from 'lucide-react';
+import { User, Room, SystemThemeSchedule, SystemThemeSettings } from '../types';
+import { Shield, Users, UserPlus, FileDown, Upload, RefreshCw, Key, Trash, CheckCircle, AlertTriangle, Search, Edit, ArrowRightLeft, Check, X, Filter, Users2, Calendar, Clock, Sun, Moon, Sparkles, Plus, Settings } from 'lucide-react';
 
 interface AdminDashboardProps {
   db: Database;
   onRefreshDb: () => void;
+  activeTheme?: string;
 }
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ db, onRefreshDb }) => {
-  const [activeTab, setActiveTab] = useState<'teachers' | 'students' | 'excel' | 'classes'>('teachers');
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ db, onRefreshDb, activeTheme }) => {
+  const [activeTab, setActiveTab] = useState<'teachers' | 'students' | 'excel' | 'classes' | 'themes'>('teachers');
   
   // Teachers state
   const [teacherName, setTeacherName] = useState('');
@@ -25,6 +26,147 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ db, onRefreshDb 
   // Password reset helper
   const [passFormUserId, setPassFormUserId] = useState<string | null>(null);
   const [newPasswordValue, setNewPasswordValue] = useState('');
+
+  // --- SYSTEM THEME STATE & HANDLERS ---
+  const [themeFormName, setThemeFormName] = useState('');
+  const [themeFormThemeId, setThemeFormThemeId] = useState('tet');
+  const [themeFormType, setThemeFormType] = useState<'always' | 'scheduled' | 'time_of_day'>('scheduled');
+  const [themeFormStartDate, setThemeFormStartDate] = useState('');
+  const [themeFormEndDate, setThemeFormEndDate] = useState('');
+  const [themeFormStartHour, setThemeFormStartHour] = useState(18);
+  const [themeFormEndHour, setThemeFormEndHour] = useState(6);
+  const [themeFormIsTemporary, setThemeFormIsTemporary] = useState(true);
+  const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
+
+  const handleToggleSchedule = (sid: string) => {
+    if (!db.themeSettings) return;
+    const updatedSchedules = db.themeSettings.schedules.map(s => {
+      if (s.id === sid) {
+        return { ...s, isActive: !s.isActive };
+      }
+      return s;
+    });
+    
+    db.themeSettings = {
+      ...db.themeSettings,
+      schedules: updatedSchedules
+    };
+    saveDatabase(db);
+    onRefreshDb();
+  };
+
+  const handleDeleteSchedule = (sid: string) => {
+    if (!db.themeSettings) return;
+    openCustomConfirm(
+      "XÓA HẸN GIỜ THEME",
+      "Bạn chắc chắn muốn xóa quy tắc hẹn giờ này của hệ thống?",
+      () => {
+        db.themeSettings = {
+          ...db.themeSettings!,
+          schedules: db.themeSettings!.schedules.filter(s => s.id !== sid)
+        };
+        saveDatabase(db);
+        onRefreshDb();
+      }
+    );
+  };
+
+  const handleSaveThemeSchedule = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!themeFormName.trim()) {
+      alert("Vui lòng nhập tên ngày lễ hoặc sự kiện!");
+      return;
+    }
+    if (!db.themeSettings) {
+      db.themeSettings = { activeThemeId: 'light', schedules: [] };
+    }
+
+    const newSchedule: SystemThemeSchedule = {
+      id: editingScheduleId || 'sch-' + generateId(),
+      name: themeFormName.trim(),
+      themeId: themeFormThemeId,
+      type: themeFormType,
+      isTemporary: themeFormType === 'always' ? false : themeFormIsTemporary,
+      isActive: true,
+      ...(themeFormType === 'scheduled' ? {
+        startDate: themeFormStartDate,
+        endDate: themeFormEndDate,
+      } : {}),
+      ...(themeFormType === 'time_of_day' ? {
+        startHour: Number(themeFormStartHour),
+        endHour: Number(themeFormEndHour),
+      } : {})
+    };
+
+    let updatedSchedules = [...db.themeSettings.schedules];
+    if (editingScheduleId) {
+      updatedSchedules = updatedSchedules.map(s => s.id === editingScheduleId ? newSchedule : s);
+      setEditingScheduleId(null);
+    } else {
+      updatedSchedules.push(newSchedule);
+    }
+
+    db.themeSettings = {
+      ...db.themeSettings,
+      schedules: updatedSchedules
+    };
+    saveDatabase(db);
+    onRefreshDb();
+
+    // Reset Form
+    setThemeFormName('');
+    setThemeFormThemeId('tet');
+    setThemeFormType('scheduled');
+    setThemeFormStartDate('');
+    setThemeFormEndDate('');
+    setThemeFormStartHour(18);
+    setThemeFormEndHour(6);
+    setThemeFormIsTemporary(true);
+  };
+
+  const handleEditScheduleState = (s: SystemThemeSchedule) => {
+    setEditingScheduleId(s.id);
+    setThemeFormName(s.name);
+    setThemeFormThemeId(s.themeId);
+    setThemeFormType(s.type);
+    setThemeFormStartDate(s.startDate || '');
+    setThemeFormEndDate(s.endDate || '');
+    setThemeFormStartHour(s.startHour !== undefined ? s.startHour : 18);
+    setThemeFormEndHour(s.endHour !== undefined ? s.endHour : 6);
+    setThemeFormIsTemporary(s.isTemporary);
+  };
+
+  const handleResetToDefaultThemes = () => {
+    openCustomConfirm(
+      "ĐẶT LẠI MẶC ĐỊNH THEMES",
+      "Hành động này sẽ khôi phục toàn bộ danh sách hẹn giờ hệ thống về mẫu ban ngày, ban đêm, tết cổ truyền và giáng sinh mặc định. Bạn có muốn tiếp tục?",
+      () => {
+        db.themeSettings = {
+          activeThemeId: 'light',
+          schedules: [
+            { id: 'sch-tet', name: 'Mừng Xuân Tết Cổ Truyền', themeId: 'tet', type: 'scheduled', startDate: '2026-01-15', endDate: '2026-02-15', isTemporary: true, isActive: true },
+            { id: 'sch-mid-autumn', name: 'Trung Thu Đoàn Viên', themeId: 'mid_autumn', type: 'scheduled', startDate: '2026-09-10', endDate: '2026-10-05', isTemporary: true, isActive: true },
+            { id: 'sch-christmas', name: 'Hộp Quà Giáng Sinh Diệu Kỳ', themeId: 'christmas', type: 'scheduled', startDate: '2026-12-15', endDate: '2026-12-28', isTemporary: true, isActive: true },
+            { id: 'sch-halloween', name: 'Đêm Hội Bí Ngô Halloween', themeId: 'halloween', type: 'scheduled', startDate: '2026-10-25', endDate: '2026-11-01', isTemporary: true, isActive: true },
+            { id: 'sch-night', name: 'Hẹn Giờ Đổi Theme Ban Đêm', themeId: 'dark', type: 'time_of_day', startHour: 18, endHour: 6, isTemporary: false, isActive: true },
+            { id: 'sch-summer', name: 'Sự Kiện Mùa Hè rực rỡ', themeId: 'summer', type: 'scheduled', startDate: '2026-06-01', endDate: '2026-06-30', isTemporary: true, isActive: true }
+          ]
+        };
+        saveDatabase(db);
+        onRefreshDb();
+      }
+    );
+  };
+
+  const handleUpdateFallbackTheme = (themeId: string) => {
+    if (!db.themeSettings) return;
+    db.themeSettings = {
+      ...db.themeSettings,
+      activeThemeId: themeId
+    };
+    saveDatabase(db);
+    onRefreshDb();
+  };
 
   // --- STUDENT EDITING & SEARCH STATES ---
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
@@ -565,6 +707,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ db, onRefreshDb 
           }`}
         >
           NHẬP DỮ LIỆU EXCEL/CSV HÀNG LOẠT
+        </button>
+        <button
+          onClick={() => { setActiveTab('themes'); setImportLogs([]); }}
+          className={`flex-1 min-w-[170px] py-3 text-xs font-bold border-b-2 transition-all ${
+            activeTab === 'themes' ? 'border-amber-600 text-amber-600 font-extrabold bg-amber-50/20' : 'border-transparent text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          🎨 QUẢN LÝ THEME HỆ THỐNG
         </button>
       </div>
 
@@ -1404,6 +1554,380 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ db, onRefreshDb 
                         </div>
                       );
                     })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'themes' && (
+          <div className="space-y-6" id="themes-management-tab">
+            <div className="border-b border-slate-100 pb-3 flex flex-col md:flex-row items-center justify-between gap-4">
+              <div>
+                <h3 className="font-extrabold text-slate-800 text-base flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-amber-500 animate-spin-slow" />
+                  Quản Lý Theme Hệ Thống & Hẹn Giờ Ngày Lễ
+                </h3>
+                <p className="text-xs text-slate-550 mt-0.5">
+                  Thiết lập tự động thay đổi giao diện theo khung giờ, mùa sự kiện, hoặc các ngày lễ hội (Tết, Giáng Sinh, Trung Thu) toàn trường học.
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleResetToDefaultThemes}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-750 font-bold text-xs py-2 px-3.5 rounded-lg border border-slate-200 transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  ĐẶT LẠI MẶC ĐỊNH THEMES
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+              {/* Form panel (left) */}
+              <div className="lg:col-span-2 bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+                <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-2 border-b border-slate-200 pb-2.5">
+                  <Settings className="h-4 w-4 text-amber-650" />
+                  {editingScheduleId ? "HIỆU CHỈNH QUY TẮC" : "THÊM LỊCH SỰ KIỆN THEME"}
+                </h4>
+
+                <form onSubmit={handleSaveThemeSchedule} className="space-y-4">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Tên Ngày Lễ / Sự Kiện</label>
+                    <input
+                      type="text"
+                      className="w-full text-xs p-2.5 rounded border border-slate-350 focus:outline-none focus:ring-1 focus:ring-amber-500 bg-white font-medium text-slate-800"
+                      placeholder="Ví dụ: Tết Nguyên Đán, Giờ Đi Ngủ, Giáng Sinh..."
+                      value={themeFormName}
+                      onChange={e => setThemeFormName(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1.5">Giao diện áp dụng</label>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {[
+                        { id: 'light', label: '🌅 Ban Ngày (Light)', colorClass: 'border-sky-300 bg-sky-50 text-sky-900 font-bold' },
+                        { id: 'dark', label: '🌌 Ban Đêm (Night)', colorClass: 'border-slate-800 bg-slate-905 text-slate-100 font-bold' },
+                        { id: 'tet', label: '🧧 Mừng Xuân Tết', colorClass: 'border-red-400 bg-red-105 text-red-900 font-bold' },
+                        { id: 'mid_autumn', label: '🏮 Trung Thu Đoàn Viên', colorClass: 'border-amber-400 bg-amber-55 text-amber-950 font-bold' },
+                        { id: 'christmas', label: '🎄 Giáng Sinh Tuyết', colorClass: 'border-emerald-500 bg-emerald-55 text-emerald-900 font-bold' },
+                        { id: 'summer', label: '🏝️ Mùa Hè Rực Rỡ', colorClass: 'border-teal-400 bg-teal-55 text-teal-900 font-bold' },
+                        { id: 'halloween', label: '🎃 Halloween Ma Quái', colorClass: 'border-orange-400 bg-orange-105 text-orange-950 font-bold' }
+                      ].map(themeOpt => (
+                        <button
+                          key={themeOpt.id}
+                          type="button"
+                          onClick={() => setThemeFormThemeId(themeOpt.id)}
+                          className={`p-2 rounded-lg border text-[10.5px] text-left transition-all flex items-center gap-1.5 ${themeOpt.colorClass} ${
+                            themeFormThemeId === themeOpt.id ? 'ring-2 ring-amber-500 scale-102' : 'opacity-70 hover:opacity-100'
+                          }`}
+                        >
+                          <span className="w-2.5 h-2.5 rounded-full bg-current" />
+                          <span className="truncate">{themeOpt.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1.5">Hình Thức Hẹn Giờ</label>
+                    <div className="flex bg-slate-100 rounded-lg p-1 border">
+                      <button
+                        type="button"
+                        onClick={() => setThemeFormType('scheduled')}
+                        className={`flex-1 py-1.5 text-[10px] font-bold rounded-md transition-all ${
+                          themeFormType === 'scheduled' ? 'bg-white text-slate-850 shadow' : 'text-slate-550'
+                        }`}
+                      >
+                        📅 Ngày lễ cố định
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setThemeFormType('time_of_day')}
+                        className={`flex-1 py-1.5 text-[10px] font-bold rounded-md transition-all ${
+                          themeFormType === 'time_of_day' ? 'bg-white text-slate-850 shadow' : 'text-slate-555'
+                        }`}
+                      >
+                        🕒 Khung giờ ngày
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setThemeFormType('always')}
+                        className={`flex-1 py-1.5 text-[10px] font-bold rounded-md transition-all ${
+                          themeFormType === 'always' ? 'bg-white text-slate-850 shadow' : 'text-slate-555'
+                        }`}
+                      >
+                        ⚡ Luôn áp dụng
+                      </button>
+                    </div>
+                  </div>
+
+                  {themeFormType === 'scheduled' && (
+                    <div className="grid grid-cols-2 gap-2 bg-white p-3 rounded-lg border border-slate-205 text-slate-800">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Từ năm-tháng-ngày</label>
+                        <input
+                          type="date"
+                          value={themeFormStartDate}
+                          onChange={e => setThemeFormStartDate(e.target.value)}
+                          className="w-full text-xs p-1.5 rounded border focus:outline-none"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Tới năm-tháng-ngày</label>
+                        <input
+                          type="date"
+                          value={themeFormEndDate}
+                          onChange={e => setThemeFormEndDate(e.target.value)}
+                          className="w-full text-xs p-1.5 rounded border focus:outline-none"
+                          required
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {themeFormType === 'time_of_day' && (
+                    <div className="grid grid-cols-2 gap-2 bg-white p-3 rounded-lg border border-slate-205 text-slate-800">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Giờ bắt đầu (0-23)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={23}
+                          value={themeFormStartHour}
+                          onChange={e => setThemeFormStartHour(Math.min(23, Math.max(0, Number(e.target.value))))}
+                          className="w-full text-xs p-1.5 rounded border focus:outline-none"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Giờ kết thúc (0-23)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={23}
+                          value={themeFormEndHour}
+                          onChange={e => setThemeFormEndHour(Math.min(23, Math.max(0, Number(e.target.value))))}
+                          className="w-full text-xs p-1.5 rounded border focus:outline-none"
+                          required
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {themeFormType !== 'always' && (
+                    <div className="flex items-center justify-between bg-white px-3 py-2.5 rounded-lg border border-slate-205 text-slate-800">
+                      <div>
+                        <span className="text-xs font-bold text-slate-800 block">Theme Có Thời Hạn</span>
+                        <span className="text-[10px] text-slate-450 block">Hết sự kiện sẽ tự hồi phục theme cũ.</span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={themeFormIsTemporary}
+                        onChange={e => setThemeFormIsTemporary(e.target.checked)}
+                        className="h-4.5 w-4.5 rounded border-slate-350 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="submit"
+                      className="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs py-2.5 rounded-lg transition-colors shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Plus className="h-4 w-4" />
+                      {editingScheduleId ? "CẬP NHẬT QUY TẮC" : "LƯU TRÊN HỆ THỐNG"}
+                    </button>
+                    {editingScheduleId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingScheduleId(null);
+                          setThemeFormName('');
+                          setThemeFormThemeId('tet');
+                          setThemeFormType('scheduled');
+                          setThemeFormStartDate('');
+                          setThemeFormEndDate('');
+                          setThemeFormStartHour(18);
+                          setThemeFormEndHour(6);
+                          setThemeFormIsTemporary(true);
+                        }}
+                        className="bg-slate-300 hover:bg-slate-400 text-slate-800 font-bold text-xs px-3.5 rounded-lg transition cursor-pointer"
+                      >
+                        HỦY
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </div>
+
+              {/* Status & Rules List Table (right side) */}
+              <div className="lg:col-span-3 space-y-5">
+                {/* Fallback settings */}
+                <div className="bg-white border border-slate-205 rounded-xl p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 text-slate-800">
+                  <div>
+                    <h5 className="font-bold text-xs text-slate-850 uppercase tracking-widest flex items-center gap-1.5">
+                      <Sun className="h-4 w-4 text-sky-500 animate-pulse" />
+                      Theme Mặc Định Toàn Khoa (Fallback)
+                    </h5>
+                    <p className="text-[11px] text-slate-450">Tự động kích hoạt khi không có rule sự kiện hay khung giờ nào khớp.</p>
+                  </div>
+                  <select
+                    className="text-xs font-bold border border-slate-300 p-2 rounded-lg bg-slate-50 focus:outline-none text-slate-800 cursor-pointer"
+                    value={db.themeSettings?.activeThemeId || 'light'}
+                    onChange={e => handleUpdateFallbackTheme(e.target.value)}
+                  >
+                    <option value="light">🌅 Thiên Thanh Ban Ngày (Mặc Định)</option>
+                    <option value="dark">🌌 Huyền Bí Ban Đêm</option>
+                    <option value="tet">🧧 Mừng Xuân Tết Cổ Truyền</option>
+                    <option value="mid_autumn">🏮 Trung Thu Rằm Tháng Tám</option>
+                    <option value="christmas">🎄 Giáng Sinh Ấm Áp</option>
+                    <option value="summer">🏝️ Mùa Hè Tuyệt Vời</option>
+                    <option value="halloween">🎃 Bí Ngô Halloween</option>
+                  </select>
+                </div>
+
+                <div className="space-y-3">
+                  <h5 className="font-bold text-xs text-slate-550 uppercase tracking-wider">
+                    DANH SÁCH LỊCH HẸN GIỜ ({db.themeSettings?.schedules?.length || 0})
+                  </h5>
+
+                  <div className="overflow-x-auto border border-slate-150 rounded-xl bg-white shadow-sm text-slate-800">
+                    <table className="w-full text-left text-xs table-auto">
+                      <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-black text-[10px]">
+                        <tr>
+                          <th className="p-3.5 pl-4">Lễ Hội / Sự Kiện</th>
+                          <th className="p-3.5">Style Theme</th>
+                          <th className="p-3.5">Hẹn Giờ Chi Tiết</th>
+                          <th className="p-3.5">Loại Hạn</th>
+                          <th className="p-3.5">Trạng Thái</th>
+                          <th className="p-3.5 pr-4 text-right">Hành động</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-slate-700">
+                        {db.themeSettings?.schedules?.map(sched => {
+                          const now = new Date();
+                          const chour = now.getHours();
+                          const year = now.getFullYear();
+                          const month = String(now.getMonth() + 1).padStart(2, '0');
+                          const day = String(now.getDate()).padStart(2, '0');
+                          const cDateStr = `${year}-${month}-${day}`;
+
+                          let isTimingMatched = false;
+                          if (sched.isActive) {
+                            if (sched.type === 'scheduled' && sched.startDate && sched.endDate) {
+                              isTimingMatched = cDateStr >= sched.startDate && cDateStr <= sched.endDate;
+                            } else if (sched.type === 'time_of_day' && sched.startHour !== undefined && sched.endHour !== undefined) {
+                              if (sched.startHour > sched.endHour) {
+                                isTimingMatched = chour >= sched.startHour || chour < sched.endHour;
+                              } else {
+                                isTimingMatched = chour >= sched.startHour && chour < sched.endHour;
+                              }
+                            } else if (sched.type === 'always') {
+                              isTimingMatched = true;
+                            }
+                          }
+
+                          return (
+                            <tr key={sched.id} className={`hover:bg-slate-50/50 transition-colors ${isTimingMatched ? 'bg-amber-50/35 font-medium' : ''}`}>
+                              <td className="p-3 pl-4">
+                                <span className="font-bold text-slate-850 text-[11.5px] block">{sched.name}</span>
+                                <span className="text-[9px] text-slate-400 font-mono italic">Mã lỗi: {sched.id}</span>
+                              </td>
+                              <td className="p-3">
+                                {sched.themeId === 'light' && <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100/80 text-sky-850 border border-sky-200">🌅 Sáng (Light)</span>}
+                                {sched.themeId === 'dark' && <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-900/90 text-slate-100 border border-slate-700">🌌 Đêm (Dark)</span>}
+                                {sched.themeId === 'tet' && <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-900 border border-red-200">🧧 Mừng Xuân Tết</span>}
+                                {sched.themeId === 'mid_autumn' && <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-yellow-105 text-yellow-950 border border-yellow-250">🏮 Rằm Trung Thu</span>}
+                                {sched.themeId === 'christmas' && <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">🎄 Giáng Sinh</span>}
+                                {sched.themeId === 'summer' && <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 text-teal-900 border border-teal-200">🏝️ Mùa Hè rực rỡ</span>}
+                                {sched.themeId === 'halloween' && <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-950 border border-orange-200">🎃 Halloween</span>}
+                              </td>
+                              <td className="p-3 font-mono text-[10.5px]">
+                                {sched.type === 'scheduled' && (
+                                  <div className="flex items-center gap-1 text-[10px] text-slate-650 bg-slate-100 px-1.5 py-0.5 rounded w-fit border">
+                                    <Calendar className="h-3 w-3 text-slate-500" />
+                                    <span>{sched.startDate} ➔ {sched.endDate}</span>
+                                  </div>
+                                )}
+                                {sched.type === 'time_of_day' && (
+                                  <div className="flex items-center gap-1 text-[10px] text-slate-655 bg-slate-100 px-1.5 py-0.5 rounded w-fit border">
+                                    <Clock className="h-3 w-3 text-slate-500" />
+                                    <span>{sched.startHour}:00 ➔ {sched.endHour}:00</span>
+                                  </div>
+                                )}
+                                {sched.type === 'always' && (
+                                  <span className="text-[10px] text-indigo-800 bg-indigo-50 px-1.5 py-0.5 rounded font-extrabold border border-indigo-200">Luôn bật</span>
+                                )}
+                              </td>
+                              <td className="p-3">
+                                {sched.isTemporary ? (
+                                  <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-lg border border-amber-200">
+                                    Có thời hạn
+                                  </span>
+                                ) : (
+                                  <span className="text-[9px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-lg border border-slate-200">
+                                    Vô thời hạn
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-3">
+                                <div className="flex flex-col gap-1 items-start">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleSchedule(sched.id)}
+                                    className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                                      sched.isActive
+                                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                        : 'bg-slate-150 text-slate-500 border border-slate-200'
+                                    }`}
+                                  >
+                                    {sched.isActive ? 'Bật kích hoạt' : 'Đã khóa'}
+                                  </button>
+
+                                  {isTimingMatched && (
+                                    <span className="text-[8.5px] bg-rose-600 text-yellow-300 border border-rose-400 font-extrabold px-1.5 py-0.5 rounded-full uppercase animate-pulse flex items-center gap-0.5 mt-0.5">
+                                      ✨ HIỆN HÀNH
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="p-3 pr-4 text-right flex justify-end gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleEditScheduleState(sched)}
+                                  className="p-1 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded transition cursor-pointer"
+                                  title="Chỉnh sửa quy tắc"
+                                >
+                                  <Edit className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteSchedule(sched.id)}
+                                  className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition cursor-pointer"
+                                  title="Xóa quy tắc"
+                                >
+                                  <Trash className="h-3.5 w-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {(!db.themeSettings?.schedules || db.themeSettings.schedules.length === 0) && (
+                          <tr>
+                            <td colSpan={6} className="p-8 text-center text-slate-400 italic">
+                              Chưa có bất kỳ quy tắc đổi Theme tự động nào được đăng ký. Nhấn 'Đặt lại mặc định' để thêm nhanh.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>

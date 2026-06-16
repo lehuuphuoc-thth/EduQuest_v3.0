@@ -5,7 +5,6 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
-    base: '/EduQuest_v3.0/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

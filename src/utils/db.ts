@@ -1,4 +1,4 @@
-import { User, Room, RoomParticipant, Quest, QuestSubmission, CosmeticCatalogItem, InventoryItem, ShopItem, PendingPurchase } from '../types';
+import { User, Room, RoomParticipant, Quest, QuestSubmission, CosmeticCatalogItem, InventoryItem, ShopItem, PendingPurchase, SystemThemeSchedule, SystemThemeSettings } from '../types';
 
 // Helper to generate IDs
 export const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -67,7 +67,67 @@ export interface Database {
   shopApprovalRequired?: boolean;
   pendingPurchases?: PendingPurchase[];
   customCosmetics?: CosmeticCatalogItem[];
+  themeSettings?: SystemThemeSettings;
 }
+
+export const DEFAULT_THEME_SETTINGS: SystemThemeSettings = {
+  activeThemeId: 'light',
+  schedules: [
+    { id: 'sch-tet', name: 'Mừng Xuân Tết Cổ Truyền', themeId: 'tet', type: 'scheduled', startDate: '2026-01-15', endDate: '2026-02-15', isTemporary: true, isActive: true },
+    { id: 'sch-mid-autumn', name: 'Trung Thu Đoàn Viên', themeId: 'mid_autumn', type: 'scheduled', startDate: '2026-09-10', endDate: '2026-10-05', isTemporary: true, isActive: true },
+    { id: 'sch-christmas', name: 'Hộp Quà Giáng Sinh Diệu Kỳ', themeId: 'christmas', type: 'scheduled', startDate: '2026-12-15', endDate: '2026-12-28', isTemporary: true, isActive: true },
+    { id: 'sch-halloween', name: 'Đêm Hội Bí Ngô Halloween', themeId: 'halloween', type: 'scheduled', startDate: '2026-10-25', endDate: '2026-11-01', isTemporary: true, isActive: true },
+    { id: 'sch-night', name: 'Hẹn Giờ Đổi Theme Ban Đêm', themeId: 'dark', type: 'time_of_day', startHour: 18, endHour: 6, isTemporary: false, isActive: true },
+    { id: 'sch-summer', name: 'Sự Kiện Mùa Hè rực rỡ', themeId: 'summer', type: 'scheduled', startDate: '2026-06-01', endDate: '2026-06-30', isTemporary: true, isActive: true }
+  ]
+};
+
+export const getActiveTheme = (db: Database | null): string => {
+  if (!db || !db.themeSettings) return 'light';
+  const { activeThemeId, schedules } = db.themeSettings;
+  
+  const now = new Date();
+  const currentHour = now.getHours();
+  
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const currentDateStr = `${year}-${month}-${day}`; // e.g. "2026-06-16"
+
+  // 1. Scheduled date range theme takes highest priority (Tết, Halloween, Summer, etc.)
+  const activeDateSchedule = schedules.find(s => 
+    s.isActive && 
+    s.type === 'scheduled' && 
+    s.startDate && s.endDate && 
+    currentDateStr >= s.startDate && currentDateStr <= s.endDate
+  );
+  if (activeDateSchedule) {
+    return activeDateSchedule.themeId;
+  }
+
+  // 2. Time-of-day scheduled theme holds subsequent priority (e.g. night mode from 18 to 6)
+  const activeTimeSchedule = schedules.find(s => {
+    if (!s.isActive || s.type !== 'time_of_day' || s.startHour === undefined || s.endHour === undefined) return false;
+    
+    // Over midnight check (e.g. 18:00 to 06:00 means hour >= 18 OR hour < 6)
+    if (s.startHour > s.endHour) {
+      return currentHour >= s.startHour || currentHour < s.endHour;
+    } else {
+      return currentHour >= s.startHour && currentHour < s.endHour;
+    }
+  });
+  if (activeTimeSchedule) {
+    return activeTimeSchedule.themeId;
+  }
+
+  // 3. User manually chosen "always" override schedule
+  const activeAlwaysSchedule = schedules.find(s => s.isActive && s.type === 'always');
+  if (activeAlwaysSchedule) {
+    return activeAlwaysSchedule.themeId;
+  }
+
+  return activeThemeId || 'light';
+};
 
 export const loadDatabase = (): Database => {
   const data = localStorage.getItem('eduquest_db');
@@ -89,11 +149,15 @@ export const loadDatabase = (): Database => {
       if (!parsed.customCosmetics) {
         parsed.customCosmetics = [];
       }
+      if (!parsed.themeSettings) {
+        parsed.themeSettings = DEFAULT_THEME_SETTINGS;
+      }
       return parsed as Database;
     } catch (e) {
       console.error("Failed to parse database", e);
     }
   }
+
 
   // First-time Seeding
   const users: User[] = [
@@ -264,6 +328,7 @@ export const loadDatabase = (): Database => {
     shopApprovalRequired: true,
     pendingPurchases: [],
     customCosmetics: [],
+    themeSettings: DEFAULT_THEME_SETTINGS,
   };
 
   saveDatabase(initialDb);

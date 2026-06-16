@@ -9,6 +9,7 @@ interface TeacherDashboardProps {
   db: Database;
   onRefreshDb: () => void;
   onUpdateTeacherProfile: (updatedProfile: User) => void;
+  activeTheme?: string;
 }
 
 export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
@@ -16,6 +17,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   db,
   onRefreshDb,
   onUpdateTeacherProfile,
+  activeTheme = 'light',
 }) => {
   // 1. Password overlays for first time login enforce
   const [newPass, setNewPass] = useState('');

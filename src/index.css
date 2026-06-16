@@ -1,1 +1,114 @@
 @import "tailwindcss";
+
+@layer utilities {
+  /* Slow rotation for badges and lucky wheel accents */
+  .animate-spin-slow {
+    animation: spin 8s linear infinite;
+  }
+  
+  /* Floating animation for lanterns and sparks */
+  .animate-float-slow {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  /* Sparkling background or custom firework flare */
+  .glowing-sparkle {
+    box-shadow: 0 0 15px rgba(251, 191, 36, 0.4), inset 0 0 8px rgba(251, 191, 36, 0.2);
+  }
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+  105% { transform: translateY(0px); }
+}
+
+@keyframes pulse-gold {
+  0%, 105% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.05); }
+}
+
+/* Custom backgrounds for themes with beautiful gradients */
+.theme-bg-light {
+  background-color: #f8fafc;
+}
+
+.theme-bg-dark {
+  background-color: #030712;
+  background-image: radial-gradient(circle at 50% 50%, #0f172a 0%, #030712 100%);
+}
+
+.theme-bg-tet {
+  background-color: #7f1d1d;
+  background-image: 
+    radial-gradient(ellipse at top, rgba(239, 68, 68, 0.15), transparent),
+    radial-gradient(circle at bottom, rgba(245, 158, 11, 0.1), transparent),
+    linear-gradient(to bottom, #7f1d1d, #450a0a);
+}
+
+.theme-bg-mid_autumn {
+  background-color: #021526;
+  background-image: 
+    radial-gradient(circle at 105% 20%, rgba(217, 119, 6, 0.2), transparent 40%),
+    linear-gradient(to bottom, #021526, #030712);
+}
+
+.theme-bg-christmas {
+  background-color: #022c22;
+  background-image: 
+    radial-gradient(circle at middle, rgba(239, 68, 68, 0.08) 0%, transparent 60%),
+    linear-gradient(to bottom, #022c22, #050505);
+}
+
+.theme-bg-summer {
+  background-color: #f0fdfa;
+  background-image: 
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.1), transparent 50%),
+    linear-gradient(to bottom, #f0fdfa, #ecfdf5);
+}
+
+.theme-bg-halloween {
+  background-color: #0b0710;
+  background-image: 
+    radial-gradient(circle at top left, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at bottom right, rgba(249, 115, 22, 0.1) 0%, transparent 50%),
+    linear-gradient(to bottom, #0b0710, #13111C);
+}
+
+/* Sparkly text & background anims */
+@keyframes shimmer-gold {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes text-rainbow {
+  0%, 100% { filter: hue-rotate(0deg); }
+  50% { filter: hue-rotate(360deg); }
+}
+
+.animate-shimmer-gold {
+  background-size: 200% auto !important;
+  animation: shimmer-gold 2.5s linear infinite !important;
+}
+
+.animate-rainbow-text {
+  animation: text-rainbow 4s linear infinite !important;
+}
+
+.glow-purple {
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.75), inset 0 0 5px rgba(255, 255, 255, 0.3);
+}
+
+.glow-cyan {
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.75), inset 0 0 5px rgba(255, 255, 255, 0.3);
+}
+
+.glow-green {
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.75), inset 0 0 5px rgba(255, 255, 255, 0.3);
+}
+
+.glow-gold {
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.9), inset 0 0 6px rgba(255, 255, 255, 0.4);
+}
+
+

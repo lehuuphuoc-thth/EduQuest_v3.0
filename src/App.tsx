@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { loadDatabase, Database, DeviceFingerprint, getStoredDevice } from './utils/db';
+import { loadDatabase, Database, DeviceFingerprint, getStoredDevice, getActiveTheme } from './utils/db';
 import { User } from './types';
 import { SimulatedDevicePanel } from './components/SimulatedDevicePanel';
 import { AdminDashboard } from './components/AdminDashboard';
@@ -118,8 +118,18 @@ export default function App() {
     );
   }
 
+  const activeTheme = getActiveTheme(db);
+  const themeBodyClass = 
+    activeTheme === 'dark' ? 'theme-bg-dark text-slate-100' :
+    activeTheme === 'tet' ? 'theme-bg-tet text-red-50' :
+    activeTheme === 'mid_autumn' ? 'theme-bg-mid_autumn text-amber-50' :
+    activeTheme === 'christmas' ? 'theme-bg-christmas text-emerald-50' :
+    activeTheme === 'summer' ? 'theme-bg-summer text-slate-900' :
+    activeTheme === 'halloween' ? 'theme-bg-halloween text-orange-100' :
+    'theme-bg-light text-slate-900 bg-slate-50';
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans antialiased text-slate-900 pb-20">
+    <div className={`min-h-screen flex flex-col font-sans antialiased pb-20 ${themeBodyClass}`}>
       
       {/* 1. TOP DEVICE FINGERPRINT SIMULATOR PANEL */}
       <SimulatedDevicePanel onDeviceChange={(device) => setSimDevice(device)} />
@@ -232,6 +242,7 @@ export default function App() {
             onStudentLogin={(stu) => setActiveStudent(stu)}
             activeStudent={activeStudent}
             onLogout={() => setActiveStudent(null)}
+            activeTheme={activeTheme}
           />
         )}
 
@@ -294,6 +305,7 @@ export default function App() {
                 db={db}
                 onRefreshDb={refreshDbState}
                 onUpdateTeacherProfile={(upd) => setActiveTeacher(upd)}
+                activeTheme={activeTheme}
               />
             )}
           </div>
@@ -356,6 +368,7 @@ export default function App() {
               <AdminDashboard
                 db={db}
                 onRefreshDb={refreshDbState}
+                activeTheme={activeTheme}
               />
             )}
           </div>
